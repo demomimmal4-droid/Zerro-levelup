@@ -250,46 +250,72 @@
         <button (click)="logout()" class="text-sm text-red-600 hover:text-red-700 font-medium">Sign Out</button>
       </div>
 
+      <!-- Permission Warning -->
+      @if (!dataService.canEdit()) {
+        <div class="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl mb-6 flex items-center gap-3">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+            </svg>
+            <div>
+                <p class="font-bold">Access Restricted</p>
+                <p class="text-sm">An administrator has disabled your ability to create or edit posts.</p>
+            </div>
+        </div>
+      }
+
       <div class="grid gap-8 md:grid-cols-[1fr_300px]">
-        <!-- Create Post Form -->
+        <!-- Create/Edit Post Form -->
         <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <span class="bg-blue-100 text-blue-600 p-1 rounded">✏️</span> Create New Link Post
-          </h3>
-          <form (submit)="createPost()" class="space-y-4">
-            <div>
-              <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Title</label>
-              <input type="text" [(ngModel)]="postForm.title" name="postTitle" class="w-full px-3 py-2 rounded border border-slate-300 focus:border-blue-500 outline-none" placeholder="e.g. My Tech Telegram Channel">
-            </div>
-            
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Category</label>
-                <select [(ngModel)]="postForm.categoryId" name="postCat" class="w-full px-3 py-2 rounded border border-slate-300 focus:border-blue-500 outline-none bg-white">
-                  <option value="" disabled>Select Category</option>
-                  @for (cat of dataService.categories(); track cat.id) {
-                    <option [value]="cat.id">{{ cat.name }}</option>
-                  }
-                </select>
-              </div>
-              <div>
-                <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Destination URL</label>
-                <input type="url" [(ngModel)]="postForm.url" name="postUrl" class="w-full px-3 py-2 rounded border border-slate-300 focus:border-blue-500 outline-none" placeholder="https://t.me/...">
-              </div>
-            </div>
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <span class="bg-blue-100 text-blue-600 p-1 rounded">
+                    {{ editingPostId() ? '📝' : '✏️' }}
+                </span> 
+                {{ editingPostId() ? 'Edit Link Post' : 'Create New Link Post' }}
+            </h3>
+            @if (editingPostId()) {
+                <button (click)="resetPostForm()" class="text-xs text-slate-500 hover:text-slate-800 underline">Cancel Edit</button>
+            }
+          </div>
 
-            <div>
-              <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Image URL</label>
-              <input type="url" [(ngModel)]="postForm.imageUrl" name="postImg" class="w-full px-3 py-2 rounded border border-slate-300 focus:border-blue-500 outline-none" placeholder="https://example.com/image.jpg">
-              <p class="text-xs text-slate-400 mt-1">Leave empty for a random placeholder.</p>
-            </div>
-
-            <div>
-              <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Description</label>
-              <textarea [(ngModel)]="postForm.description" name="postDesc" rows="3" class="w-full px-3 py-2 rounded border border-slate-300 focus:border-blue-500 outline-none" placeholder="Briefly describe your channel or page..."></textarea>
-            </div>
-
-            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded font-medium transition-colors">Publish Link</button>
+          <form (submit)="savePost()" class="space-y-4">
+            <fieldset [disabled]="!dataService.canEdit()">
+                <div>
+                  <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Title</label>
+                  <input type="text" [(ngModel)]="postForm.title" name="postTitle" class="w-full px-3 py-2 rounded border border-slate-300 focus:border-blue-500 outline-none disabled:bg-slate-50 disabled:text-slate-400" placeholder="e.g. My Tech Telegram Channel">
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4">
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Category</label>
+                    <select [(ngModel)]="postForm.categoryId" name="postCat" class="w-full px-3 py-2 rounded border border-slate-300 focus:border-blue-500 outline-none bg-white disabled:bg-slate-50 disabled:text-slate-400">
+                      <option value="" disabled>Select Category</option>
+                      @for (cat of dataService.categories(); track cat.id) {
+                        <option [value]="cat.id">{{ cat.name }}</option>
+                      }
+                    </select>
+                  </div>
+                  <div>
+                    <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Destination URL</label>
+                    <input type="url" [(ngModel)]="postForm.url" name="postUrl" class="w-full px-3 py-2 rounded border border-slate-300 focus:border-blue-500 outline-none disabled:bg-slate-50 disabled:text-slate-400" placeholder="https://t.me/...">
+                  </div>
+                </div>
+    
+                <div>
+                  <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Image URL</label>
+                  <input type="url" [(ngModel)]="postForm.imageUrl" name="postImg" class="w-full px-3 py-2 rounded border border-slate-300 focus:border-blue-500 outline-none disabled:bg-slate-50 disabled:text-slate-400" placeholder="https://example.com/image.jpg">
+                  <p class="text-xs text-slate-400 mt-1">Leave empty for a random placeholder.</p>
+                </div>
+    
+                <div>
+                  <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Description</label>
+                  <textarea [(ngModel)]="postForm.description" name="postDesc" rows="3" class="w-full px-3 py-2 rounded border border-slate-300 focus:border-blue-500 outline-none disabled:bg-slate-50 disabled:text-slate-400" placeholder="Briefly describe your channel or page..."></textarea>
+                </div>
+    
+                <button type="submit" [class]="editingPostId() ? 'bg-blue-600 hover:bg-blue-700' : 'bg-emerald-600 hover:bg-emerald-700'" class="w-full text-white py-2 rounded font-medium transition-colors mt-2 disabled:bg-slate-300 disabled:cursor-not-allowed">
+                    {{ editingPostId() ? 'Update Post' : 'Publish Link' }}
+                </button>
+            </fieldset>
           </form>
         </div>
 
@@ -313,11 +339,10 @@
                       <p class="text-sm font-medium text-slate-900 truncate">{{ post.title }}</p>
                       <p class="text-xs text-slate-500">{{ getCategoryName(post.categoryId) }}</p>
                     </div>
-                    <button (click)="deletePost(post.id)" class="text-slate-400 hover:text-red-500">
-                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
-                      </svg>
-                    </button>
+                    <div class="flex flex-col gap-1">
+                        <button (click)="editPost(post)" class="text-blue-500 hover:text-blue-700 text-xs font-medium">Edit</button>
+                        <button (click)="deletePost(post.id)" class="text-red-400 hover:text-red-500 text-xs">Delete</button>
+                    </div>
                  </li>
                }
              </ul>
@@ -333,72 +358,156 @@
       <div class="flex items-center justify-between mb-8">
         <div>
           <h2 class="text-2xl font-bold text-slate-900">Admin Control Panel</h2>
-          <p class="text-slate-500">Manage categories and content</p>
+          <p class="text-slate-500">Manage categories, content and users</p>
         </div>
-        <button (click)="logout()" class="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 text-sm font-medium">Sign Out</button>
+        <div class="flex gap-2">
+            <button (click)="seedData()" class="px-4 py-2 bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100 text-sm font-medium transition-colors">
+                Seed Default Data
+            </button>
+            <button (click)="logout()" class="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 text-sm font-medium">Sign Out</button>
+        </div>
       </div>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        <!-- Category Management -->
-        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h3 class="font-bold text-lg mb-4">Manage Categories</h3>
-          
-          <div class="flex gap-2 mb-6">
-            <input type="text" [(ngModel)]="categoryForm.name" placeholder="Category Name" class="flex-1 px-3 py-2 border border-slate-300 rounded text-sm outline-none focus:border-blue-500">
-            <input type="text" [(ngModel)]="categoryForm.icon" placeholder="Icon (emoji)" class="w-20 px-3 py-2 border border-slate-300 rounded text-sm outline-none focus:border-blue-500">
-            <button (click)="createCategory()" class="bg-slate-800 text-white px-4 rounded text-sm hover:bg-slate-700">Add</button>
-          </div>
-
-          <div class="space-y-2">
-            @for (cat of dataService.categories(); track cat.id) {
-              <div class="flex items-center justify-between p-3 bg-slate-50 rounded border border-slate-100">
-                <div class="flex items-center gap-3">
-                  <span class="text-xl">{{ cat.icon }}</span>
-                  <span class="font-medium text-slate-700">{{ cat.name }}</span>
-                </div>
-                <button (click)="deleteCategory(cat.id)" class="text-red-500 hover:text-red-700 p-1">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+        <!-- Left Column: Categories & Post Editor -->
+        <div class="space-y-8">
+            <!-- Category Management -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+              <h3 class="font-bold text-lg mb-4">Manage Categories</h3>
+              
+              <div class="flex gap-2 mb-6">
+                <input type="text" [(ngModel)]="categoryForm.name" placeholder="Category Name" class="flex-1 px-3 py-2 border border-slate-300 rounded text-sm outline-none focus:border-blue-500">
+                <input type="text" [(ngModel)]="categoryForm.icon" placeholder="Icon (emoji)" class="w-20 px-3 py-2 border border-slate-300 rounded text-sm outline-none focus:border-blue-500">
+                <button (click)="createCategory()" class="bg-slate-800 text-white px-4 rounded text-sm hover:bg-slate-700">Add</button>
               </div>
-            }
-          </div>
+    
+              <div class="space-y-2 max-h-60 overflow-y-auto">
+                @for (cat of dataService.categories(); track cat.id) {
+                  <div class="flex items-center justify-between p-3 bg-slate-50 rounded border border-slate-100">
+                    <div class="flex items-center gap-3">
+                      <span class="text-xl">{{ cat.icon }}</span>
+                      <span class="font-medium text-slate-700">{{ cat.name }}</span>
+                    </div>
+                    <button (click)="deleteCategory(cat.id)" class="text-red-500 hover:text-red-700 p-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                }
+              </div>
+            </div>
+
+            <!-- Admin Post Creator/Editor (Reusing logic) -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 border-l-4 border-l-purple-500">
+                 <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-lg">
+                        {{ editingPostId() ? 'Edit Post' : 'Create Admin Post' }}
+                    </h3>
+                    @if (editingPostId()) {
+                        <button (click)="resetPostForm()" class="text-xs text-red-500 underline">Cancel Edit</button>
+                    }
+                 </div>
+                 
+                 <form (submit)="savePost()" class="space-y-3">
+                    <input type="text" [(ngModel)]="postForm.title" name="aTitle" placeholder="Title" class="w-full px-3 py-2 border rounded text-sm">
+                    <div class="flex gap-2">
+                        <select [(ngModel)]="postForm.categoryId" name="aCat" class="w-1/2 px-3 py-2 border rounded text-sm">
+                            <option value="" disabled>Category</option>
+                            @for (cat of dataService.categories(); track cat.id) {
+                                <option [value]="cat.id">{{ cat.name }}</option>
+                            }
+                        </select>
+                        <input type="url" [(ngModel)]="postForm.url" name="aUrl" placeholder="URL" class="w-1/2 px-3 py-2 border rounded text-sm">
+                    </div>
+                    <input type="url" [(ngModel)]="postForm.imageUrl" name="aImg" placeholder="Image URL (Optional)" class="w-full px-3 py-2 border rounded text-sm">
+                    <textarea [(ngModel)]="postForm.description" name="aDesc" placeholder="Description" rows="2" class="w-full px-3 py-2 border rounded text-sm"></textarea>
+                    
+                    <button type="submit" class="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 rounded font-medium text-sm">
+                        {{ editingPostId() ? 'Save Changes' : 'Post as Admin' }}
+                    </button>
+                 </form>
+            </div>
         </div>
 
-        <!-- All Posts Management -->
-        <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h3 class="font-bold text-lg mb-4">All Posts ({{ dataService.posts().length }})</h3>
-          
-          <div class="overflow-x-auto">
-            <table class="w-full text-sm text-left">
-              <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b">
-                <tr>
-                  <th class="px-4 py-3">Post</th>
-                  <th class="px-4 py-3">Publisher</th>
-                  <th class="px-4 py-3">Category</th>
-                  <th class="px-4 py-3 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100">
-                @for (post of dataService.posts(); track post.id) {
-                  <tr class="hover:bg-slate-50">
-                    <td class="px-4 py-3 font-medium text-slate-900">{{ post.title }}</td>
-                    <td class="px-4 py-3 text-slate-500">{{ post.publisherName }}</td>
-                    <td class="px-4 py-3">
-                      <span class="inline-flex items-center gap-1 px-2 py-1 rounded bg-slate-100 text-slate-600 text-xs">
-                        {{ getCategoryName(post.categoryId) }}
-                      </span>
-                    </td>
-                    <td class="px-4 py-3 text-right">
-                       <button (click)="deletePost(post.id)" class="text-red-600 hover:text-red-800 text-xs font-medium border border-red-200 px-2 py-1 rounded hover:bg-red-50">Delete</button>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
+        <!-- Right Column: Posts & Users -->
+        <div class="lg:col-span-2 space-y-8">
+            
+            <!-- User Management -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h3 class="font-bold text-lg mb-4">Manage Publishers</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                        <thead class="bg-slate-50 text-slate-500 uppercase text-xs">
+                            <tr>
+                                <th class="px-4 py-3">Name</th>
+                                <th class="px-4 py-3">Email</th>
+                                <th class="px-4 py-3 text-center">Status</th>
+                                <th class="px-4 py-3 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @for (pub of publishersList(); track pub.id) {
+                                <tr>
+                                    <td class="px-4 py-3 font-medium">{{ pub.name }}</td>
+                                    <td class="px-4 py-3 text-slate-500">{{ pub.email }}</td>
+                                    <td class="px-4 py-3 text-center">
+                                        <span [class]="(pub.canEdit !== false) ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'" class="px-2 py-1 rounded text-xs font-bold">
+                                            {{ (pub.canEdit !== false) ? 'Active' : 'Blocked' }}
+                                        </span>
+                                    </td>
+                                    <td class="px-4 py-3 text-right">
+                                        <button (click)="togglePublisherEdit(pub)" class="text-xs border px-2 py-1 rounded hover:bg-slate-50 transition-colors">
+                                            {{ (pub.canEdit !== false) ? 'Block Editing' : 'Allow Editing' }}
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                            @if (publishersList().length === 0) {
+                                <tr>
+                                    <td colspan="4" class="px-4 py-4 text-center text-slate-400">No publishers registered yet.</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- All Posts Management -->
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+                <h3 class="font-bold text-lg mb-4">All Posts ({{ dataService.posts().length }})</h3>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm text-left">
+                    <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b">
+                        <tr>
+                        <th class="px-4 py-3">Post</th>
+                        <th class="px-4 py-3">Publisher</th>
+                        <th class="px-4 py-3">Category</th>
+                        <th class="px-4 py-3 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        @for (post of dataService.posts(); track post.id) {
+                        <tr class="hover:bg-slate-50">
+                            <td class="px-4 py-3 font-medium text-slate-900">{{ post.title }}</td>
+                            <td class="px-4 py-3 text-slate-500">{{ post.publisherName }}</td>
+                            <td class="px-4 py-3">
+                            <span class="inline-flex items-center gap-1 px-2 py-1 rounded bg-slate-100 text-slate-600 text-xs">
+                                {{ getCategoryName(post.categoryId) }}
+                            </span>
+                            </td>
+                            <td class="px-4 py-3 text-right space-x-2">
+                                <button (click)="editPost(post)" class="text-blue-600 hover:text-blue-800 text-xs font-medium border border-blue-200 px-2 py-1 rounded hover:bg-blue-50">Edit</button>
+                                <button (click)="deletePost(post.id)" class="text-red-600 hover:text-red-800 text-xs font-medium border border-red-200 px-2 py-1 rounded hover:bg-red-50">Delete</button>
+                            </td>
+                        </tr>
+                        }
+                    </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
 
       </div>

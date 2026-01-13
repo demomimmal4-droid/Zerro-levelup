@@ -2,7 +2,7 @@
 import { Component, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { DataService, Post, Category } from './services/data.service';
+import { DataService, Post, Category, User } from './services/data.service';
 
 type ViewState = 'home' | 'login' | 'register' | 'publisher-dashboard' | 'admin-dashboard';
 
@@ -22,11 +22,14 @@ export class AppComponent {
   selectedCategory = signal<string>('all');
   selectedPost = signal<Post | null>(null);
   
+  // Edit State
+  editingPostId = signal<string | null>(null);
+  
   // Forms State
   loginForm = { email: '', password: '' };
   registerForm = { name: '', email: '', password: '', role: 'user' as 'user' | 'publisher' };
   
-  // Publisher Form
+  // Publisher/Admin Post Form
   postForm = {
     title: '',
     description: '',
@@ -59,14 +62,18 @@ export class AppComponent {
     return this.dataService.posts().filter(p => p.publisherId === user.id);
   });
 
-  constructor() {
-    // Sync view with user state changes
-  }
+  // Derived Data for Admin (User Management)
+  publishersList = computed(() => {
+      return this.dataService.allUsers().filter(u => u.role === 'publisher');
+  });
+
+  constructor() { }
 
   // --- Navigation Methods ---
   setView(view: ViewState) {
     this.currentView.set(view);
-    this.selectedPost.set(null); // Close modal when changing views
+    this.selectedPost.set(null);
+    this.resetPostForm(); // Reset form when changing views
     window.scrollTo(0, 0);
   }
 
@@ -77,7 +84,6 @@ export class AppComponent {
 
   openPost(post: Post) {
     this.selectedPost.set(post);
-    // Prevent background scrolling
     document.body.style.overflow = 'hidden';
   }
 
@@ -91,7 +97,7 @@ export class AppComponent {
   async handleLogin() {
     try {
       await this.dataService.login(this.loginForm.email, this.loginForm.password);
-      this.loginForm = { email: '', password: '' }; // Reset
+      this.loginForm = { email: '', password: '' };
       
       setTimeout(() => {
           const user = this.dataService.currentUser();
@@ -101,16 +107,12 @@ export class AppComponent {
       }, 500);
 
     } catch (error: any) {
-      // Helper for Demo: If the demo admin user doesn't exist yet, create it on the fly.
       const isDemoAdmin = this.loginForm.email === 'moinulbd.sk@gmail.com';
       const isCredentialError = error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.message?.includes('invalid-credential');
 
       if (isDemoAdmin && isCredentialError) {
          try {
-           // Auto-register the demo admin
            await this.dataService.register('Demo Admin', this.loginForm.email, this.loginForm.password, 'user');
-           // Register automatically signs in. 
-           // The DataService.register logic handles the 'admin' role assignment for this specific email.
             setTimeout(() => {
                 this.setView('admin-dashboard');
             }, 500);
@@ -148,25 +150,77 @@ export class AppComponent {
     }
   }
 
-  createPost() {
+  // Unified Create/Edit Method
+  async savePost() {
+    if (!this.dataService.canEdit()) {
+        alert('You have been restricted from editing or creating posts by the Admin.');
+        return;
+    }
+
     if (!this.postForm.title || !this.postForm.url || !this.postForm.categoryId) {
       alert('Title, URL and Category are required');
       return;
     }
     
-    // Use placeholder if no image
     const img = this.postForm.imageUrl || `https://picsum.photos/400/200?random=${Math.random()}`;
-
-    this.dataService.addPost({
+    const postData = {
       title: this.postForm.title,
       description: this.postForm.description,
       url: this.postForm.url,
       imageUrl: img,
       categoryId: this.postForm.categoryId
-    }).then(() => {
-        alert('Post published successfully!');
-        this.postForm = { title: '', description: '', url: '', imageUrl: '', categoryId: '' };
-    }).catch(err => alert('Error publishing: ' + err.message));
+    };
+
+    try {
+        if (this.editingPostId()) {
+            // Update Existing
+            await this.dataService.updatePost(this.editingPostId()!, postData);
+            alert('Post updated successfully!');
+        } else {
+            // Create New
+            await this.dataService.addPost(postData);
+            alert('Post published successfully!');
+        }
+        this.resetPostForm();
+    } catch (err: any) {
+        alert('Error saving post: ' + err.message);
+    }
+  }
+
+  editPost(post: Post) {
+      // Check permission before loading form
+      if (!this.dataService.canEdit()) {
+          alert('You do not have permission to edit.');
+          return;
+      }
+
+      this.editingPostId.set(post.id);
+      this.postForm = {
+          title: post.title,
+          description: post.description,
+          url: post.url,
+          imageUrl: post.imageUrl,
+          categoryId: post.categoryId
+      };
+
+      // Ensure we are in a dashboard view to see the form
+      const user = this.dataService.currentUser();
+      if (user?.role === 'admin') {
+          // If admin is browsing home or other, bring to dashboard? 
+          // Actually admin dashboard has the list, so we might stay there. 
+          // If admin clicks edit from home, we should ideally go to dashboard.
+          this.setView('admin-dashboard');
+          // For UX, scroll to form
+          setTimeout(() => window.scrollTo(0, 0), 100);
+      } else if (user?.role === 'publisher') {
+          this.setView('publisher-dashboard');
+          setTimeout(() => window.scrollTo(0, 0), 100);
+      }
+  }
+
+  resetPostForm() {
+      this.editingPostId.set(null);
+      this.postForm = { title: '', description: '', url: '', imageUrl: '', categoryId: '' };
   }
 
   createCategory() {
@@ -185,6 +239,20 @@ export class AppComponent {
     if(confirm('Delete this category?')) {
       this.dataService.deleteCategory(id);
     }
+  }
+  
+  // Admin: Toggle User Permission
+  togglePublisherEdit(user: User) {
+      const newStatus = user.canEdit === false ? true : false;
+      this.dataService.updateUserPermission(user.id, newStatus);
+  }
+
+  // Admin: Seed Defaults
+  async seedData() {
+      if(confirm('This will add default Facebook, Telegram, WhatsApp posts. Continue?')) {
+          await this.dataService.seedDefaults();
+          alert('Default posts added!');
+      }
   }
 
   getCategoryName(id: string): string {
