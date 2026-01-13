@@ -25,19 +25,22 @@
     "rxjs/testing": "https://esm.sh/rxjs@^7.8.2/testing?conditions=es2015",
     "rxjs/fetch": "https://esm.sh/rxjs@^7.8.2/fetch?conditions=es2015",
     "@angular/compiler": "https://esm.sh/@angular/compiler@^21.0.8?external=rxjs",
-    "@angular/forms": "https://esm.sh/@angular/forms@^21.0.8?external=rxjs",
-    "@angular/common": "https://esm.sh/@angular/common@^21.0.8?external=rxjs",
-    "@angular/core": "https://esm.sh/@angular/core@^21.0.8?external=rxjs",
     "@angular/platform-browser": "https://esm.sh/@angular/platform-browser@^21.0.8?external=rxjs",
-    "firebase/app": "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js",
-    "firebase/auth": "https://www.gstatic.com/firebasejs/10.13.1/firebase-auth.js",
-    "firebase/database": "https://www.gstatic.com/firebasejs/10.13.1/firebase-database.js",
-    "firebase/analytics": "https://www.gstatic.com/firebasejs/10.13.1/firebase-analytics.js"
+    "@angular/core": "https://esm.sh/@angular/core@^21.0.8?external=rxjs",
+    "@angular/common": "https://esm.sh/@angular/common@^21.0.8?external=rxjs",
+    "@angular/forms": "https://esm.sh/@angular/forms@^21.0.8?external=rxjs",
+    "firebase/auth": "https://esm.sh/firebase@^12.7.0/auth?external=rxjs",
+    "firebase/database": "https://esm.sh/firebase@^12.7.0/database?external=rxjs",
+    "firebase/analytics": "https://esm.sh/firebase@^12.7.0/analytics?external=rxjs",
+    "firebase/app": "https://esm.sh/firebase@^12.7.0/app?external=rxjs",
+    "vite": "https://esm.sh/vite@^7.3.1?external=rxjs",
+    "@analogjs/vite-plugin-angular": "https://esm.sh/@analogjs/vite-plugin-angular@^2.2.1?external=rxjs"
   }
 }
 </script>
 </head>
 <body class="bg-slate-50 text-slate-800">
   <app-root></app-root>
+  <script type="module" src="/src/main.ts"></script>
 </body>
 </html>
