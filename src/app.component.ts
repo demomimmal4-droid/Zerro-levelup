@@ -101,7 +101,26 @@ export class AppComponent {
       }, 500);
 
     } catch (error: any) {
-      alert('Login failed: ' + (error.message || 'Unknown error'));
+      // Helper for Demo: If the demo admin user doesn't exist yet, create it on the fly.
+      const isDemoAdmin = this.loginForm.email === 'moinulbd.sk@gmail.com';
+      const isCredentialError = error.code === 'auth/invalid-credential' || error.code === 'auth/user-not-found' || error.message?.includes('invalid-credential');
+
+      if (isDemoAdmin && isCredentialError) {
+         try {
+           // Auto-register the demo admin
+           await this.dataService.register('Demo Admin', this.loginForm.email, this.loginForm.password, 'user');
+           // Register automatically signs in. 
+           // The DataService.register logic handles the 'admin' role assignment for this specific email.
+            setTimeout(() => {
+                this.setView('admin-dashboard');
+            }, 500);
+            return;
+         } catch (regError: any) {
+            alert('Login failed. Attempted to auto-create demo admin but failed: ' + regError.message);
+         }
+      } else {
+        alert('Login failed: ' + (error.message || 'Check your credentials'));
+      }
     }
   }
 
