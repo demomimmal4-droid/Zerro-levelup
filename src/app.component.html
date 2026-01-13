@@ -1,0 +1,407 @@
+
+<!-- Navbar -->
+<nav class="bg-white border-b border-slate-200 sticky top-0 z-40">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="flex justify-between h-16">
+      <div class="flex items-center cursor-pointer" (click)="setView('home')">
+        <div class="flex-shrink-0 flex items-center gap-2">
+          <div class="w-9 h-9 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-bold shadow-sm">Z</div>
+          <span class="font-bold text-lg tracking-tight text-slate-900">Zerro Levelup</span>
+        </div>
+      </div>
+      
+      <div class="flex items-center gap-4">
+        @if (!dataService.currentUser()) {
+          <button (click)="setView('login')" class="text-slate-600 hover:text-blue-600 font-medium text-sm">Log in</button>
+          <button (click)="setView('register')" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-full text-sm font-medium transition-colors">Sign up</button>
+        } @else {
+          <div class="flex items-center gap-3">
+            <span class="text-sm text-slate-500 hidden sm:block">Hi, {{ dataService.currentUser()?.name }}</span>
+            
+            @if (dataService.isAdmin()) {
+              <button (click)="setView('admin-dashboard')" class="text-xs bg-slate-800 text-white px-2 py-1 rounded uppercase tracking-wider">Admin</button>
+            }
+            @if (dataService.isPublisher() && !dataService.isAdmin()) {
+              <button (click)="setView('publisher-dashboard')" class="text-xs bg-emerald-600 text-white px-2 py-1 rounded uppercase tracking-wider">Publisher</button>
+            }
+
+            <button (click)="logout()" class="text-slate-400 hover:text-red-500">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 2.062-5M12 12h9.19" />
+              </svg>
+            </button>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- Main Content Area -->
+<main class="min-h-[calc(100vh-64px)] pb-12 bg-white">
+
+  <!-- HOME VIEW -->
+  @if (currentView() === 'home') {
+    <div class="max-w-2xl mx-auto min-h-screen">
+      
+      <!-- Search Header -->
+      <div class="sticky top-16 z-30 bg-white/95 backdrop-blur border-b border-slate-100 px-4 py-3">
+        <div class="relative">
+          <input 
+            type="text" 
+            [(ngModel)]="searchQuery" 
+            placeholder="Search channels..." 
+            class="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-100 border-none focus:ring-0 text-slate-900 placeholder:text-slate-500 font-medium"
+          >
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+            <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
+          </svg>
+        </div>
+
+        <!-- Categories horizontal scroll -->
+        <div class="flex gap-2 overflow-x-auto py-3 no-scrollbar mt-1">
+          <button 
+            (click)="selectedCategory.set('all')"
+            [class]="selectedCategory() === 'all' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+            class="px-4 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap transition-colors"
+          >
+            All
+          </button>
+          @for (cat of dataService.categories(); track cat.id) {
+            <button 
+              (click)="selectedCategory.set(cat.id)"
+              [class]="selectedCategory() === cat.id ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'"
+              class="px-4 py-1.5 rounded-full text-sm font-semibold whitespace-nowrap transition-colors flex items-center gap-1.5"
+            >
+              <span>{{ cat.icon }}</span> {{ cat.name }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <!-- Telegram Style List -->
+      <div class="divide-y divide-slate-100">
+        @for (post of filteredPosts(); track post.id) {
+          <div (click)="openPost(post)" class="flex items-center gap-4 p-4 hover:bg-slate-50 transition-colors cursor-pointer group active:bg-slate-100">
+            <!-- Circular Avatar -->
+            <div class="relative shrink-0">
+               <img [src]="post.imageUrl" alt="Avatar" class="w-14 h-14 rounded-full object-cover bg-slate-200 border border-slate-100 group-hover:scale-105 transition-transform">
+               <div class="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm">
+                 <span class="flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-[10px]">{{ getCategoryIcon(post.categoryId) }}</span>
+               </div>
+            </div>
+            
+            <!-- Content -->
+            <div class="flex-1 min-w-0">
+              <div class="flex justify-between items-baseline mb-0.5">
+                <h3 class="font-bold text-slate-900 truncate text-[16px]">{{ post.title }}</h3>
+                <span class="text-xs text-slate-400 shrink-0 ml-2 font-medium">{{ post.date | date:'shortDate' }}</span>
+              </div>
+              <p class="text-slate-500 text-sm truncate pr-4">{{ post.description }}</p>
+            </div>
+          </div>
+        }
+        
+        @if (filteredPosts().length === 0) {
+          <div class="py-20 text-center">
+            <div class="text-4xl mb-4 opacity-50">📂</div>
+            <h3 class="text-lg font-bold text-slate-800">No channels found</h3>
+            <p class="text-slate-500 text-sm">Search for something else</p>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- POST DETAIL MODAL (Google/Telegram Detail View) -->
+    @if (selectedPost()) {
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6" role="dialog">
+        <!-- Backdrop -->
+        <div class="absolute inset-0 bg-black/40 backdrop-blur-sm transition-opacity" (click)="closePost()"></div>
+        
+        <!-- Modal Card -->
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden relative z-10 animate-in fade-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+          
+          <!-- Header Image Area -->
+          <div class="relative h-48 sm:h-56 bg-slate-100 shrink-0">
+            <img [src]="selectedPost()?.imageUrl" class="w-full h-full object-cover">
+            <button (click)="closePost()" class="absolute top-4 left-4 bg-black/30 hover:bg-black/50 text-white rounded-full p-2 backdrop-blur-md transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                <path fill-rule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clip-rule="evenodd" />
+              </svg>
+            </button>
+            <div class="absolute bottom-4 left-4 flex gap-2">
+              <span class="bg-white/90 backdrop-blur text-xs font-bold px-2.5 py-1 rounded-md shadow-sm text-slate-900 flex items-center gap-1">
+                 {{ getCategoryIcon(selectedPost()!.categoryId) }} {{ getCategoryName(selectedPost()!.categoryId) }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Body -->
+          <div class="p-6 overflow-y-auto">
+            <h2 class="text-2xl font-bold text-slate-900 mb-2 leading-tight">{{ selectedPost()?.title }}</h2>
+            
+            <div class="flex items-center gap-2 mb-6 text-sm text-slate-500">
+              <span class="font-medium text-slate-700">By {{ selectedPost()?.publisherName }}</span>
+              <span>•</span>
+              <span>{{ selectedPost()?.date | date:'mediumDate' }}</span>
+            </div>
+
+            <div class="prose prose-slate prose-sm max-w-none text-slate-600 mb-8 leading-relaxed">
+              {{ selectedPost()?.description }}
+            </div>
+
+            <!-- Action Button -->
+            <a [href]="selectedPost()?.url" target="_blank" class="block w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-center py-3.5 rounded-xl shadow-lg shadow-blue-200 transition-all transform active:scale-95 flex items-center justify-center gap-2">
+              <span>View Channel</span>
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+                <path fill-rule="evenodd" d="M3 10a.75.75 0 0 1 .75-.75h10.638L10.23 5.29a.75.75 0 1 1 1.04-1.08l5.5 5.25a.75.75 0 0 1 0 1.08l-5.5 5.25a.75.75 0 1 1-1.04-1.08l4.158-3.96H3.75A.75.75 0 0 1 3 10Z" clip-rule="evenodd" />
+              </svg>
+            </a>
+            
+            <p class="text-center text-xs text-slate-400 mt-4">
+              You will be redirected to an external website or app.
+            </p>
+          </div>
+        </div>
+      </div>
+    }
+  }
+
+  <!-- LOGIN VIEW -->
+  @if (currentView() === 'login') {
+    <div class="flex items-center justify-center min-h-[80vh] px-4">
+      <div class="bg-white p-8 rounded-2xl shadow-xl border border-slate-100 max-w-md w-full">
+        <h2 class="text-2xl font-bold text-center mb-2">Welcome Back</h2>
+        <p class="text-center text-slate-500 mb-8">Sign in to manage your links</p>
+        
+        <form (submit)="handleLogin()" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
+            <input type="email" [(ngModel)]="loginForm.email" name="email" required class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+            <input type="password" [(ngModel)]="loginForm.password" name="password" required class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none">
+          </div>
+          <button type="submit" class="w-full bg-slate-900 hover:bg-slate-800 text-white py-2.5 rounded-lg font-medium transition-colors">Sign In</button>
+        </form>
+        
+        <div class="mt-6 text-center text-sm text-slate-600">
+          Don't have an account? <button (click)="setView('register')" class="text-blue-600 font-medium hover:underline">Create Account</button>
+        </div>
+        <div class="mt-8 pt-6 border-t border-slate-100 text-xs text-center text-slate-400">
+          <p>Demo Admin: moinulbd.sk@gmail.com</p>
+          <p>Pass: @#ZerroLevelup@#646</p>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- REGISTER VIEW -->
+  @if (currentView() === 'register') {
+    <div class="flex items-center justify-center min-h-[80vh] px-4">
+      <div class="bg-white p-8 rounded-2xl shadow-xl border border-slate-100 max-w-md w-full">
+        <h2 class="text-2xl font-bold text-center mb-2">Create Account</h2>
+        <p class="text-center text-slate-500 mb-8">Join the community</p>
+        
+        <form (submit)="handleRegister()" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Full Name</label>
+            <input type="text" [(ngModel)]="registerForm.name" name="name" required class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Email Address</label>
+            <input type="email" [(ngModel)]="registerForm.email" name="email" required class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+            <input type="password" [(ngModel)]="registerForm.password" name="password" required class="w-full px-4 py-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 outline-none">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-slate-700 mb-1">I want to join as a:</label>
+            <div class="grid grid-cols-2 gap-3">
+              <button type="button" 
+                (click)="registerForm.role = 'user'" 
+                [class]="registerForm.role === 'user' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-white border-slate-200 text-slate-600'"
+                class="border rounded-lg py-2 text-sm font-medium transition-all"
+              >Viewer</button>
+              <button type="button" 
+                (click)="registerForm.role = 'publisher'" 
+                [class]="registerForm.role === 'publisher' ? 'bg-blue-50 border-blue-500 text-blue-700' : 'bg-white border-slate-200 text-slate-600'"
+                class="border rounded-lg py-2 text-sm font-medium transition-all"
+              >Publisher</button>
+            </div>
+          </div>
+          <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg font-medium transition-colors">Register</button>
+        </form>
+        
+        <div class="mt-6 text-center text-sm text-slate-600">
+          Already have an account? <button (click)="setView('login')" class="text-blue-600 font-medium hover:underline">Log in</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- PUBLISHER DASHBOARD -->
+  @if (currentView() === 'publisher-dashboard') {
+    <div class="max-w-4xl mx-auto px-4 py-8">
+      <div class="flex items-center justify-between mb-8">
+        <h2 class="text-2xl font-bold text-slate-900">Publisher Dashboard</h2>
+        <button (click)="logout()" class="text-sm text-red-600 hover:text-red-700 font-medium">Sign Out</button>
+      </div>
+
+      <div class="grid gap-8 md:grid-cols-[1fr_300px]">
+        <!-- Create Post Form -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+          <h3 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+            <span class="bg-blue-100 text-blue-600 p-1 rounded">✏️</span> Create New Link Post
+          </h3>
+          <form (submit)="createPost()" class="space-y-4">
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Title</label>
+              <input type="text" [(ngModel)]="postForm.title" name="postTitle" class="w-full px-3 py-2 rounded border border-slate-300 focus:border-blue-500 outline-none" placeholder="e.g. My Tech Telegram Channel">
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Category</label>
+                <select [(ngModel)]="postForm.categoryId" name="postCat" class="w-full px-3 py-2 rounded border border-slate-300 focus:border-blue-500 outline-none bg-white">
+                  <option value="" disabled>Select Category</option>
+                  @for (cat of dataService.categories(); track cat.id) {
+                    <option [value]="cat.id">{{ cat.name }}</option>
+                  }
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Destination URL</label>
+                <input type="url" [(ngModel)]="postForm.url" name="postUrl" class="w-full px-3 py-2 rounded border border-slate-300 focus:border-blue-500 outline-none" placeholder="https://t.me/...">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Image URL</label>
+              <input type="url" [(ngModel)]="postForm.imageUrl" name="postImg" class="w-full px-3 py-2 rounded border border-slate-300 focus:border-blue-500 outline-none" placeholder="https://example.com/image.jpg">
+              <p class="text-xs text-slate-400 mt-1">Leave empty for a random placeholder.</p>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-500 uppercase mb-1">Description</label>
+              <textarea [(ngModel)]="postForm.description" name="postDesc" rows="3" class="w-full px-3 py-2 rounded border border-slate-300 focus:border-blue-500 outline-none" placeholder="Briefly describe your channel or page..."></textarea>
+            </div>
+
+            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2 rounded font-medium transition-colors">Publish Link</button>
+          </form>
+        </div>
+
+        <!-- Sidebar / My Stats -->
+        <div class="space-y-6">
+          <div class="bg-slate-900 text-white p-6 rounded-xl shadow-lg">
+            <h4 class="text-slate-400 text-sm font-medium mb-1">Total Posts</h4>
+            <div class="text-3xl font-bold">{{ myPosts().length }}</div>
+          </div>
+
+          <div class="bg-white p-4 rounded-xl border border-slate-200">
+             <h4 class="font-bold text-slate-800 mb-3 text-sm">Your Recent Posts</h4>
+             @if (myPosts().length === 0) {
+               <p class="text-sm text-slate-400">No posts yet.</p>
+             }
+             <ul class="space-y-3">
+               @for (post of myPosts(); track post.id) {
+                 <li class="flex items-start gap-3 pb-3 border-b border-slate-100 last:border-0 last:pb-0">
+                    <img [src]="post.imageUrl" class="w-10 h-10 rounded object-cover bg-slate-100">
+                    <div class="flex-1 min-w-0">
+                      <p class="text-sm font-medium text-slate-900 truncate">{{ post.title }}</p>
+                      <p class="text-xs text-slate-500">{{ getCategoryName(post.categoryId) }}</p>
+                    </div>
+                    <button (click)="deletePost(post.id)" class="text-slate-400 hover:text-red-500">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                      </svg>
+                    </button>
+                 </li>
+               }
+             </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ADMIN DASHBOARD -->
+  @if (currentView() === 'admin-dashboard') {
+    <div class="max-w-7xl mx-auto px-4 py-8">
+      <div class="flex items-center justify-between mb-8">
+        <div>
+          <h2 class="text-2xl font-bold text-slate-900">Admin Control Panel</h2>
+          <p class="text-slate-500">Manage categories and content</p>
+        </div>
+        <button (click)="logout()" class="px-4 py-2 border border-slate-300 rounded-lg hover:bg-slate-50 text-sm font-medium">Sign Out</button>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        
+        <!-- Category Management -->
+        <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+          <h3 class="font-bold text-lg mb-4">Manage Categories</h3>
+          
+          <div class="flex gap-2 mb-6">
+            <input type="text" [(ngModel)]="categoryForm.name" placeholder="Category Name" class="flex-1 px-3 py-2 border border-slate-300 rounded text-sm outline-none focus:border-blue-500">
+            <input type="text" [(ngModel)]="categoryForm.icon" placeholder="Icon (emoji)" class="w-20 px-3 py-2 border border-slate-300 rounded text-sm outline-none focus:border-blue-500">
+            <button (click)="createCategory()" class="bg-slate-800 text-white px-4 rounded text-sm hover:bg-slate-700">Add</button>
+          </div>
+
+          <div class="space-y-2">
+            @for (cat of dataService.categories(); track cat.id) {
+              <div class="flex items-center justify-between p-3 bg-slate-50 rounded border border-slate-100">
+                <div class="flex items-center gap-3">
+                  <span class="text-xl">{{ cat.icon }}</span>
+                  <span class="font-medium text-slate-700">{{ cat.name }}</span>
+                </div>
+                <button (click)="deleteCategory(cat.id)" class="text-red-500 hover:text-red-700 p-1">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            }
+          </div>
+        </div>
+
+        <!-- All Posts Management -->
+        <div class="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+          <h3 class="font-bold text-lg mb-4">All Posts ({{ dataService.posts().length }})</h3>
+          
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left">
+              <thead class="text-xs text-slate-500 uppercase bg-slate-50 border-b">
+                <tr>
+                  <th class="px-4 py-3">Post</th>
+                  <th class="px-4 py-3">Publisher</th>
+                  <th class="px-4 py-3">Category</th>
+                  <th class="px-4 py-3 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                @for (post of dataService.posts(); track post.id) {
+                  <tr class="hover:bg-slate-50">
+                    <td class="px-4 py-3 font-medium text-slate-900">{{ post.title }}</td>
+                    <td class="px-4 py-3 text-slate-500">{{ post.publisherName }}</td>
+                    <td class="px-4 py-3">
+                      <span class="inline-flex items-center gap-1 px-2 py-1 rounded bg-slate-100 text-slate-600 text-xs">
+                        {{ getCategoryName(post.categoryId) }}
+                      </span>
+                    </td>
+                    <td class="px-4 py-3 text-right">
+                       <button (click)="deletePost(post.id)" class="text-red-600 hover:text-red-800 text-xs font-medium border border-red-200 px-2 py-1 rounded hover:bg-red-50">Delete</button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  }
+</main>
